@@ -2,17 +2,19 @@ import Express from 'express'
 import Routes from './routes'
 import Mongoose from 'mongoose'
 import Cors from 'cors'
+import { MongoURI } from './config/database'
 
 class App {
   public connection: Express.Express
 
   public constructor() {
+    const uri = MongoURI()
     this.connection = Express()
     this.connection.use(Express.json())
     this.connection.use(Express.urlencoded({ extended: true }))
     this.connection.use(Cors())
     this.connection.use(Routes)
-    Mongoose.connect('mongodb://localhost:27017/poo-disease', {
+    Mongoose.connect(uri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       useCreateIndex: true,

@@ -1,6 +1,6 @@
-import { Status } from '../constants'
+import { Status } from '../../constants'
 import mongoose, { Document, Schema, Model } from 'mongoose'
-import { SimStateData } from '../types'
+import { SimStateData } from '../../types'
 // import { PersonSchema } from './PersonSchema'
 // import { PersonData } from '../models/utils/Simulation'
 import { StatsSchema } from './SimulationSchema'

@@ -1,12 +1,11 @@
-import PersonDataGenerator from '../../services/PersonDataGenerator'
-import City from '../City'
-import { Status } from '../../constants'
-import { PersonNeededData } from '../../interfaces'
-import Pos from '../Pos'
+import Random from '../../helpers/Random'
+import City from '../core/City'
+import { DEFAULT, Gender, Status } from '../../constants'
+import { ClosePeopleCategory, PersonProps } from '../../types'
+import Pos from '../core/Pos'
 import CityMap from '../map/CityMap'
-import Woman from './Woman'
-import Man from './Man'
-import { Logger } from '../Simulation'
+import Logger from '../utils/Logger'
+import DataGenerator from '../utils/DataGenerator'
 
 export abstract class Person {
   private _name: string
@@ -15,13 +14,13 @@ export abstract class Person {
   private _status: Status
   private _infectionAge: number | undefined
 
-  public constructor(data: PersonNeededData) {
-    this._name = data.name || PersonDataGenerator.randomName()
-    this._age = data.age || PersonDataGenerator.randomAge()
+  public constructor(data: PersonProps) {
+    this._name = data.name || Random.genName(this)
+    this._age = data.age || Random.genAge()
     this._status = data.status || Status.HEALTHY
     this._infectionAge = undefined
     if (data.city) {
-      this._pos = data.city.generatePosition()
+      this._pos = Random.genPos(data.city.map)
     } else if (data.pos) {
       this._pos = new Pos(data.pos.x, data.pos.y)
     } else {
@@ -30,7 +29,7 @@ export abstract class Person {
     if (this._status === Status.INFECTED) this._infectionAge = this._age
   }
 
-  public abstract genderToString(): string
+  public abstract gender(): Gender
 
   get name(): string {
     return this._name
@@ -68,8 +67,19 @@ export abstract class Person {
     return this._pos.isClose(person.pos)
   }
 
-  public move(map: CityMap): Pos {
-    const nextPos = this._pos.nextPositions()
+  public canCopulate(): boolean {
+    return this._age >= 18 && this._age <= 25
+  }
+
+  public liveIn(city: City, dataGen: DataGenerator, timeLeap?: number): void {
+    this.moveIn(city.map)
+    this.getOlder(timeLeap || DEFAULT.time.MODIFIER)
+    this.getImmunity(dataGen)
+    this.interact(city, city.whoIsCloseTo(this), dataGen)
+  }
+
+  protected moveIn(map: CityMap): Pos {
+    const nextPos = Random.shuffle(this._pos.closePositions()) as Pos[]
     let i = 0
 
     while (i < nextPos.length && !map.queryMovement(this._pos, nextPos[i])) i++
@@ -79,8 +89,8 @@ export abstract class Person {
     return this._pos
   }
 
-  public getOlder(): void {
-    this._age += 1
+  protected getOlder(timeLeap: number): void {
+    this._age += timeLeap
   }
 
   public checkHealth(): Status {
@@ -93,48 +103,39 @@ export abstract class Person {
     return Status.INFECTED
   }
 
-  public getImmunity(): void {
-    if (this._status === Status.IMMUNE) return
-
-    if (this._age >= 3 && this._age <= 8 && this._status === Status.HEALTHY) {
+  protected getImmunity(dataGen: DataGenerator): void {
+    if (this._status === Status.HEALTHY && this._age >= 3 && this._age <= 8) {
       this._status = Status.IMMUNE
-      Logger.GETIMMUNE(this.name, this.age)
+      dataGen.pushLog(Logger.GETIMMUNE(this.name, this.age))
     }
   }
 
-  public interact(city: City): void {
-    const closePeople = city.whoIsCloseTo(this)
-    this.getOlder()
-    this.getImmunity()
-
+  protected interact(
+    _city: City,
+    closePeople: ClosePeopleCategory,
+    dataGen: DataGenerator
+  ): void {
     if (this._status === Status.INFECTED) {
-      this.infect(closePeople)
+      this.infect(closePeople.canBeInfected, dataGen)
     } else if (this.status === Status.HEALTHY) {
-      this.checkInfected(closePeople)
-    }
-    if (this instanceof Woman && this._age >= 18 && this._age <= 25) {
-      for (const p of closePeople)
-        if (p instanceof Man && p._age >= 18 && p._age <= 25) {
-          city.createCitizen(this.giveBirth(city, p))
-          break
-        }
+      this.checkInfected(closePeople.canInfect, dataGen)
     }
   }
 
-  private infect(closePeople: Person[]): void {
+  protected infect(closePeople: Person[], dataGen: DataGenerator): void {
     for (const p of closePeople) {
       if (p._status === Status.HEALTHY) {
-        Logger.INFECT(this.name, this.pos, p.name, p.pos)
+        dataGen.pushLog(Logger.INFECT(this.name, this.pos, p.name, p.pos))
         p.status = Status.INFECTED
         p._infectionAge = p._age
       }
     }
   }
 
-  private checkInfected(closePeople: Person[]): void {
+  protected checkInfected(closePeople: Person[], dataGen: DataGenerator): void {
     for (const p of closePeople) {
       if (p.status === Status.INFECTED) {
-        Logger.GETINFECTED(p.name, p.pos, this.name, this.pos)
+        dataGen.pushLog(Logger.GETINFECTED(p.name, p.pos, this.name, this.pos))
         this._status = Status.INFECTED
         this._infectionAge = this.age
         break

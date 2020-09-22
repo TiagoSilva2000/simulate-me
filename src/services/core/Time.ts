@@ -1,18 +1,18 @@
-import { TimeNeededData } from '../interfaces'
-
+import { TimeProps } from '../../types'
+import { DEFAULT } from '../../constants'
 export default class Time {
   private readonly _initialTime: number
   private readonly _finalTime: number
   private _modifier: number
   private _currentTime: number
-  private _timeUnlimited: boolean
+  private _unlimited: boolean
   public readonly TIME_PROCESS_LIMIT: number
 
-  public constructor(data: TimeNeededData) {
-    this._initialTime = data.initialYear || 0
-    this._timeUnlimited = data.timeUnlimited || false
-    this._modifier = data.modifier || 1
-    this._currentTime = data.currentYear || this._initialTime
+  public constructor(data: TimeProps) {
+    this._initialTime = data.initialYear || DEFAULT.time.INITIAL
+    this._currentTime = data.currentYear || DEFAULT.time.INITIAL
+    this._modifier = data.modifier || DEFAULT.time.MODIFIER
+    this._unlimited = data.timeUnlimited || DEFAULT.time.UNLIMITED
 
     if (data.finalYear) {
       this._finalTime = data.finalYear
@@ -22,7 +22,7 @@ export default class Time {
         this._finalTime = 0
       } else {
         this.TIME_PROCESS_LIMIT = -1
-        this._finalTime = data.finalYear || 32
+        this._finalTime = data.finalYear || DEFAULT.time.FINAL
       }
     }
   }
@@ -47,12 +47,14 @@ export default class Time {
     this._currentTime += this._modifier
   }
 
-  public isNotOver(): boolean {
-    if (this._timeUnlimited) {
-      if (this._currentTime - this._initialTime < this.TIME_PROCESS_LIMIT)
-        return true
-    }
+  private timeLimitOver(): boolean {
+    return this._currentTime - this._initialTime >= this.TIME_PROCESS_LIMIT
+  }
 
-    return this._currentTime < this._finalTime
+  public isNotOver(): boolean {
+    return (
+      (this._unlimited && !this.timeLimitOver()) ||
+      this._currentTime < this._finalTime
+    )
   }
 }

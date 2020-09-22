@@ -1,5 +1,6 @@
 import App from './app'
+import 'dotenv/config'
 
-App.listen(3001, () => {
-  console.log(`listening on port ${3001}`)
+App.listen(process.env.PORT, () => {
+  console.log(`listening on port ${process.env.PORT}`)
 })

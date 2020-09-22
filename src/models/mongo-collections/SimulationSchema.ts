@@ -1,4 +1,4 @@
-import { Stats } from 'interfaces'
+import { Stats } from '../../types'
 import mongoose, { Document, Model, Schema } from 'mongoose'
 
 export const StatsSchema = new Schema(

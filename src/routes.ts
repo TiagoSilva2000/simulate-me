@@ -11,7 +11,7 @@ class Routes {
   }
 
   private testRoutes() {
-    this.routes.get('/', (req, res) => res.send('<h1>Running<h1/>'))
+    this.routes.get('/', (req, res) => res.send('<h1>Running Backend<h1/>'))
   }
 
   private simulationRoutes() {

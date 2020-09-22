@@ -1,12 +1,12 @@
 import { Request, Response } from 'express'
-import City from '../models/City'
-import Time from '../models/Time'
-import SimStateModel from '../schemas/SimStateSchema'
+import City from '../services/core/City'
+import Time from '../services/core/Time'
+import SimStateModel from '../models/mongo-collections/SimStateSchema'
 import SimulationModel, {
   SimulationDocument
-} from '../schemas/SimulationSchema'
-import { PopulationDefaultData } from '../interfaces'
-import Simulation from '../models/Simulation'
+} from '../models/mongo-collections/SimulationSchema'
+import { PopulationDefaultData } from '../types'
+import Simulation from '../services/core/Simulation'
 
 export default class SimulationController {
   static async index(req: Request, res: Response): Promise<Response> {
@@ -95,6 +95,7 @@ export default class SimulationController {
         modifier: Number(modifier),
         timeUnlimited: Boolean(timeUnlimited)
       }),
+      logs,
       includeCitizens: Boolean(includeCitizens) || true,
       popData: {
         initialPopulation: Number(initialPopulation) || undefined,
@@ -125,7 +126,7 @@ export default class SimulationController {
       logs: logs
     })
     await sims.save()
-    const states = sim.run(logs)
+    const states = sim.run()
 
     for await (const stt of states) {
       const state = new SimStateModel({
