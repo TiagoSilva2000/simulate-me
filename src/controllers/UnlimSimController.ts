@@ -6,12 +6,11 @@ import SimulationModel, {
   SimulationDocument
 } from '../models/mongo-collections/SimulationSchema'
 import Simulation from '../services/core/Simulation'
+import { SimulationData } from '../types'
+import SimStateController from './SimStateController'
 
 export default class UnlimSimController {
-  static async runUnlimited(
-    includeCitizens: unknown,
-    sim: SimulationDocument
-  ): Promise<unknown> {
+  static async runUnlimited(sim: SimulationDocument): Promise<unknown> {
     const states = await SimStateModel.find()
       .where({ simulationId: sim.id })
       .select('-_id -simulationId')
@@ -26,7 +25,7 @@ export default class UnlimSimController {
         modifier: sim.time.modifier,
         timeUnlimited: true
       }),
-      includeCitizens: Boolean(includeCitizens) || true,
+      includeCitizens: true,
       popData: {
         populationInfo: states[states.length - 1].citizens
       }
@@ -40,7 +39,44 @@ export default class UnlimSimController {
     return {
       simulationId: sim.id,
       oldStates: states,
-      newStates
+      newStates,
+      newStatesLocked: true
+    }
+  }
+
+  static async store(
+    sim: Simulation,
+    states: SimulationData[]
+  ): Promise<unknown> {
+    const sims = new SimulationModel({
+      _id: sim.name,
+      initialStats: {
+        healthy: sim.stats.healthy,
+        infected: sim.stats.infected,
+        dead: sim.stats.dead,
+        immune: sim.stats.immune
+      },
+      city: {
+        size: {
+          x: sim.map.sizeX,
+          y: sim.map.sizeY
+        },
+        mapType: sim.map.toString()
+      },
+      time: {
+        initial: sim.time.initialTime,
+        final: sim.time.finalTime,
+        modifier: sim.time.modifier
+      },
+      logs: sim.hasLogs
+    })
+    sims.newStatesLocked = true
+    await sims.save()
+    await SimStateController.store(sims.id, states)
+    return {
+      simulationId: sims.id,
+      states,
+      newStatesLocked: true
     }
   }
 

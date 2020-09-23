@@ -17,15 +17,18 @@ export class Runner {
       initialYear,
       finalYear,
       modifier,
-      unlimited: timeUnlimited,
+      unlimited: reqUnlimited,
       logs: reqLog,
       hw,
       hm,
       iw,
       im
     } = req.query
+    let unlimited = false
     let defaultPopulation: undefined | PopulationDefaultData
     const logs = Boolean(reqLog)
+
+    if (reqUnlimited === 'true') unlimited = true
     if (hw && hm && iw && im)
       defaultPopulation = {
         healthyWoman: Number(hw),
@@ -42,7 +45,7 @@ export class Runner {
         initialYear: Number(initialYear),
         finalYear: Number(finalYear),
         modifier: Number(modifier),
-        timeUnlimited: Boolean(timeUnlimited)
+        timeUnlimited: Boolean(unlimited)
       }),
       includeCitizens: Boolean(includeCitizens),
       popData: {
@@ -53,7 +56,5 @@ export class Runner {
     const states = sim.run()
 
     return { sim, states }
-    // initialTime: sim.time.initialTime,
-    // finalTime: sim.time.finalTime
   }
 }

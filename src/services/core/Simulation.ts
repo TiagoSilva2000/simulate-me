@@ -29,16 +29,17 @@ export default class Simulation {
   private readonly _stats: Stats
   private readonly _includeCitizens: boolean
   private readonly dataGenerator: DataGenerator
-  private readonly disease: Disease
+  private readonly _disease: Disease
 
   public constructor(data: SimulationProps) {
     this._name = data.name
+    this._disease = new SecondDayDisease()
+
     this._city = data.city || new City({})
     this._time = data.time || new Time({})
     this._includeCitizens = data.includeCitizens || true
     this.populate(data.popData)
     this.dataGenerator = new DataGenerator(data.logs)
-    this.disease = new SecondDayDisease()
     if (data.stats) {
       this._stats = data.stats
     } else {
@@ -94,7 +95,7 @@ export default class Simulation {
     this.movePeople()
     this.fillStats()
 
-    this._time.advanceTime()
+    this._time.advanceTime(this._city)
   }
 
   private movePeople(): void {
@@ -102,15 +103,11 @@ export default class Simulation {
 
     for (const c of this._city.citizens) {
       if (c.status === Status.DEAD) continue
-      c.liveIn(
-        this._city,
-        this.dataGenerator,
-        this.disease,
-        this._time.modifier
-      )
-      currStatus = c.checkHealth(this.disease)
+
+      c.liveIn(this._city, this.dataGenerator, this._disease)
+
+      currStatus = c.checkHealth(this._disease)
       if (currStatus === Status.DEAD) {
-        c.status = Status.DEAD
         this.dataGenerator.pushLog(Logger.DIE(c.name, c.pos, c.age))
         this.killPerson(c)
       }

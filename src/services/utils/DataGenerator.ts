@@ -30,6 +30,10 @@ export default class DataGenerator {
     return this._data
   }
 
+  get logs(): string[] | undefined {
+    return this._tempLog
+  }
+
   public pushLog(log: string): void {
     if (this._tempLog) this._tempLog.push(log)
   }

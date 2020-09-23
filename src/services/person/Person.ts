@@ -1,12 +1,12 @@
 import Random from '../../helpers/Random'
 import City from '../core/City'
-import { DEFAULT, Gender, Status } from '../../constants'
+import { Gender, Status } from '../../constants'
 import { ClosePeopleCategory, PersonProps } from '../../types'
 import Pos from '../core/Pos'
 import CityMap from '../map/CityMap'
 import Logger from '../utils/Logger'
 import DataGenerator from '../utils/DataGenerator'
-import Disease from 'services/core/disease/Disease'
+import Disease from '../core/disease/Disease'
 
 export abstract class Person {
   private _name: string
@@ -17,7 +17,7 @@ export abstract class Person {
 
   public constructor(data: PersonProps) {
     this._name = data.name || Random.genName(this)
-    this._age = data.age || Random.genAge()
+    this._age = data.age === undefined ? Random.genAge() : data.age
     this._status = data.status || Status.HEALTHY
     this._infectionAge = undefined
     if (data.city) {
@@ -52,6 +52,10 @@ export abstract class Person {
     return this._infectionAge
   }
 
+  set infectionAge(currAge: number | undefined) {
+    this._infectionAge = currAge
+  }
+
   get pos(): Pos {
     return this._pos
   }
@@ -72,15 +76,10 @@ export abstract class Person {
     return this._age >= 18 && this._age <= 25
   }
 
-  public liveIn(
-    city: City,
-    dataGen: DataGenerator,
-    disease: Disease,
-    timeLeap?: number
-  ): void {
+  public liveIn(city: City, dataGen: DataGenerator, disease: Disease): void {
     this.moveIn(city.map)
-    this.getOlder(timeLeap || DEFAULT.time.MODIFIER)
     this.getImmunity(dataGen, disease)
+
     this.interact(city, city.whoIsCloseTo(this), dataGen, disease)
   }
 
@@ -95,16 +94,22 @@ export abstract class Person {
     return this._pos
   }
 
-  protected getOlder(timeLeap: number): void {
+  public getOlder(timeLeap: number): void {
     this._age += timeLeap
   }
 
   public checkHealth(disease: Disease): Status {
     if (this._status === Status.DEAD) return Status.DEAD
-    if (this._age === 30) return Status.DEAD
+    if (this._age >= 30) {
+      this._status = Status.DEAD
+      return Status.DEAD
+    }
     if (this._infectionAge === undefined) return this._status
 
-    if (disease.willDie(this)) return Status.DEAD
+    if (disease.willDie(this)) {
+      this.status = Status.DEAD
+      return Status.DEAD
+    }
 
     return Status.INFECTED
   }
@@ -122,9 +127,9 @@ export abstract class Person {
     dataGen: DataGenerator,
     disease: Disease
   ): void {
-    if (this._status === Status.INFECTED) {
+    if (disease.canContaminate(this)) {
       this.infect(closePeople.canBeInfected, dataGen, disease)
-    } else if (this.status === Status.HEALTHY) {
+    } else if (disease.canBeContaminated(this)) {
       this.checkInfected(closePeople.canInfect, dataGen, disease)
     }
   }
@@ -138,7 +143,7 @@ export abstract class Person {
       if (disease.canBeContaminated(p)) {
         dataGen.pushLog(Logger.INFECT(this.name, this.pos, p.name, p.pos))
         disease.contaminate(p)
-        p._infectionAge = p._age
+        // p._infectionAge = p._age
       }
     }
   }
@@ -152,7 +157,7 @@ export abstract class Person {
       if (disease.canContaminate(p)) {
         dataGen.pushLog(Logger.GETINFECTED(p.name, p.pos, this.name, this.pos))
         disease.contaminate(this)
-        this._infectionAge = this.age
+        // this._infectionAge = this.age
         break
       }
     }

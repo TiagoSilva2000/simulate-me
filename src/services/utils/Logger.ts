@@ -36,17 +36,15 @@ export default class Logger {
     pacientName: string,
     p2: Pos
   ): string {
-    return `${pacientName}(${p1.x}, ${p1.y}) WAS INFECTED by ${agentName}(${p2.x}, ${p2.y})`
+    return `${pacientName}(${p2.x}, ${p2.y}) WAS INFECTED by ${agentName}(${p1.x}, ${p1.y})`
   }
 
   public static DIE(name: string, pos: Pos, age: number): string {
     return `${name}(${age}) DIED at (${pos.x}, ${pos.y})`
   }
 
-  public static BORN(babyName: string, pos: Pos, mothersName: string): void {
-    this.LOGS.push(
-      `${babyName} BORNED at (${pos.x}, ${pos.y}) FROM ${mothersName}`
-    )
+  public static BORN(babyName: string, pos: Pos, mothersName: string): string {
+    return `${babyName} BORNED at (${pos.x}, ${pos.y}) FROM ${mothersName}`
   }
 
   public static GETIMMUNE(name: string, age: number): string {

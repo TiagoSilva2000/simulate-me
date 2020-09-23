@@ -8,14 +8,14 @@ export default class SecondDayDisease extends Disease {
   }
 
   public willDie(p: Person): boolean {
-    if (!p.infectionAge) return true
+    if (p.infectionAge === undefined) return false
 
-    return p.infectionAge - p.age < 3
+    return p.age - p.infectionAge >= 2
   }
 
   public contaminate(p: Person): Status {
     p.status = Status.INFECTED
-
+    p.infectionAge = p.age + 1
     return p.status
   }
 
