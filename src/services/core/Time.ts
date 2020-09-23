@@ -17,7 +17,6 @@ export default class Time {
     this._modifier = data.modifier || DEFAULT.time.MODIFIER
     this._unlimited = data.timeUnlimited || DEFAULT.time.UNLIMITED
 
-    console.log(this)
     if (data.finalYear) {
       this._finalTime = data.finalYear
     } else {
