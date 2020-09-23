@@ -6,6 +6,7 @@ import Pos from '../core/Pos'
 import CityMap from '../map/CityMap'
 import Logger from '../utils/Logger'
 import DataGenerator from '../utils/DataGenerator'
+import Disease from 'services/core/disease/Disease'
 
 export abstract class Person {
   private _name: string
@@ -71,11 +72,16 @@ export abstract class Person {
     return this._age >= 18 && this._age <= 25
   }
 
-  public liveIn(city: City, dataGen: DataGenerator, timeLeap?: number): void {
+  public liveIn(
+    city: City,
+    dataGen: DataGenerator,
+    disease: Disease,
+    timeLeap?: number
+  ): void {
     this.moveIn(city.map)
     this.getOlder(timeLeap || DEFAULT.time.MODIFIER)
-    this.getImmunity(dataGen)
-    this.interact(city, city.whoIsCloseTo(this), dataGen)
+    this.getImmunity(dataGen, disease)
+    this.interact(city, city.whoIsCloseTo(this), dataGen, disease)
   }
 
   protected moveIn(map: CityMap): Pos {
@@ -93,18 +99,18 @@ export abstract class Person {
     this._age += timeLeap
   }
 
-  public checkHealth(): Status {
+  public checkHealth(disease: Disease): Status {
     if (this._status === Status.DEAD) return Status.DEAD
     if (this._age === 30) return Status.DEAD
     if (this._infectionAge === undefined) return this._status
 
-    if (this._age - this._infectionAge > 2) return Status.DEAD
+    if (disease.willDie(this)) return Status.DEAD
 
     return Status.INFECTED
   }
 
-  protected getImmunity(dataGen: DataGenerator): void {
-    if (this._status === Status.HEALTHY && this._age >= 3 && this._age <= 8) {
+  protected getImmunity(dataGen: DataGenerator, disease: Disease): void {
+    if (disease.canBeImmune(this)) {
       this._status = Status.IMMUNE
       dataGen.pushLog(Logger.GETIMMUNE(this.name, this.age))
     }
@@ -113,30 +119,39 @@ export abstract class Person {
   protected interact(
     _city: City,
     closePeople: ClosePeopleCategory,
-    dataGen: DataGenerator
+    dataGen: DataGenerator,
+    disease: Disease
   ): void {
     if (this._status === Status.INFECTED) {
-      this.infect(closePeople.canBeInfected, dataGen)
+      this.infect(closePeople.canBeInfected, dataGen, disease)
     } else if (this.status === Status.HEALTHY) {
-      this.checkInfected(closePeople.canInfect, dataGen)
+      this.checkInfected(closePeople.canInfect, dataGen, disease)
     }
   }
 
-  protected infect(closePeople: Person[], dataGen: DataGenerator): void {
+  protected infect(
+    closePeople: Person[],
+    dataGen: DataGenerator,
+    disease: Disease
+  ): void {
     for (const p of closePeople) {
-      if (p._status === Status.HEALTHY) {
+      if (disease.canBeContaminated(p)) {
         dataGen.pushLog(Logger.INFECT(this.name, this.pos, p.name, p.pos))
-        p.status = Status.INFECTED
+        disease.contaminate(p)
         p._infectionAge = p._age
       }
     }
   }
 
-  protected checkInfected(closePeople: Person[], dataGen: DataGenerator): void {
+  protected checkInfected(
+    closePeople: Person[],
+    dataGen: DataGenerator,
+    disease: Disease
+  ): void {
     for (const p of closePeople) {
-      if (p.status === Status.INFECTED) {
+      if (disease.canContaminate(p)) {
         dataGen.pushLog(Logger.GETINFECTED(p.name, p.pos, this.name, this.pos))
-        this._status = Status.INFECTED
+        disease.contaminate(this)
         this._infectionAge = this.age
         break
       }

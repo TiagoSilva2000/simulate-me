@@ -1,4 +1,6 @@
 import path from 'path'
+import 'dotenv/config'
+
 import City from './City'
 import Time from './Time'
 import {
@@ -17,20 +19,26 @@ import CityMap from '../map/CityMap'
 import { getFileInfo } from '../../helpers/Parser'
 import Random from '../../helpers/Random'
 import DataGenerator from '../utils/DataGenerator'
+import Disease from './disease/Disease'
+import SecondDayDisease from './disease/SecondDayDisease'
 
 export default class Simulation {
+  private readonly _name: string
   private readonly _city: City
   private readonly _time: Time
   private readonly _stats: Stats
   private readonly _includeCitizens: boolean
   private readonly dataGenerator: DataGenerator
+  private readonly disease: Disease
 
   public constructor(data: SimulationProps) {
+    this._name = data.name
     this._city = data.city || new City({})
     this._time = data.time || new Time({})
-    this._includeCitizens = data.includeCitizens || false
+    this._includeCitizens = data.includeCitizens || true
     this.populate(data.popData)
     this.dataGenerator = new DataGenerator(data.logs)
+    this.disease = new SecondDayDisease()
     if (data.stats) {
       this._stats = data.stats
     } else {
@@ -42,6 +50,14 @@ export default class Simulation {
       }
       this.fillStats()
     }
+  }
+
+  get hasLogs(): boolean {
+    return this.dataGenerator.hasLogs
+  }
+
+  get name(): string {
+    return this._name
   }
 
   get includeCitizens(): boolean {
@@ -86,8 +102,13 @@ export default class Simulation {
 
     for (const c of this._city.citizens) {
       if (c.status === Status.DEAD) continue
-      c.liveIn(this._city, this.dataGenerator, this._time.modifier)
-      currStatus = c.checkHealth()
+      c.liveIn(
+        this._city,
+        this.dataGenerator,
+        this.disease,
+        this._time.modifier
+      )
+      currStatus = c.checkHealth(this.disease)
       if (currStatus === Status.DEAD) {
         c.status = Status.DEAD
         this.dataGenerator.pushLog(Logger.DIE(c.name, c.pos, c.age))
@@ -130,7 +151,15 @@ export default class Simulation {
       ])
     } else {
       const arrayInfo: string[] = getFileInfo(
-        path.resolve(__dirname, '..', '..', '..', 'public', 'docs', 'first.csv')
+        path.resolve(
+          __dirname,
+          '..',
+          '..',
+          '..',
+          'public',
+          'docs',
+          (process.env.DEFAULT_POPULATION_FILENAME as string) + '.csv'
+        )
       )
       this.populateByDefault(arrayInfo)
     }

@@ -22,6 +22,10 @@ export default class DataGenerator {
     }
   }
 
+  get hasLogs(): boolean {
+    return this._hasLogs
+  }
+
   get data(): SimulationData[] {
     return this._data
   }

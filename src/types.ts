@@ -4,6 +4,22 @@ import CityMap from './services/map/CityMap'
 import { Person } from './services/person/Person'
 import Time from './services/core/Time'
 
+export type SimulationParams = {
+  sizeX?: number
+  sizeY?: number
+  citizens?: boolean
+  logs?: boolean
+  unlimited?: boolean
+  initialYear?: number
+  finalYear?: number
+  modifier?: number
+  initialPopulation?: number
+  hw?: number
+  hm?: number
+  iw?: number
+  im?: number
+}
+
 export type Stats = {
   infected: number
   dead: number
@@ -69,6 +85,7 @@ export type PopulationProps = {
 }
 
 export type SimulationProps = {
+  name: string
   city?: City
   time?: Time
   stats?: Stats

@@ -10,7 +10,8 @@ export default class Time {
 
   public constructor(data: TimeProps) {
     this._initialTime = data.initialYear || DEFAULT.time.INITIAL
-    this._currentTime = data.currentYear || DEFAULT.time.INITIAL
+    this._currentTime =
+      data.currentYear || data.initialYear || DEFAULT.time.INITIAL
     this._modifier = data.modifier || DEFAULT.time.MODIFIER
     this._unlimited = data.timeUnlimited || DEFAULT.time.UNLIMITED
 
@@ -25,6 +26,10 @@ export default class Time {
         this._finalTime = data.finalYear || DEFAULT.time.FINAL
       }
     }
+  }
+
+  get unlimited(): boolean {
+    return this._unlimited
   }
 
   get initialTime(): number {
